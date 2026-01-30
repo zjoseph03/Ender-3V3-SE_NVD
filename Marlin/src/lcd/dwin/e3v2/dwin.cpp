@@ -3272,6 +3272,10 @@ void Goto_MainMenu()
   ICON_Control();
   TERN(HAS_ONESTEP_LEVELING, ICON_Leveling, ICON_StartInfo)
   (select_page.now == 3);
+  
+  // TEST: Display message on screen when main menu loads
+  DWIN_Draw_String(false, false, font8x16, Color_Yellow, Color_Bg_Black, 30, 180, "MAIN MENU LOADED!");
+  DWIN_UpdateLCD();
 }
 
 

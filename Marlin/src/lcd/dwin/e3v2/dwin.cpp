@@ -4769,6 +4769,11 @@ void HMI_StartFrame(const bool with_update)
 {
   Goto_MainMenu();
   // Draw_Mid_Status_Area(true); //rock_20230529
+  
+  // Post-boot G-code injections - runs once after boot screen
+  queue.inject_P(PSTR("M300 S1000 P200"));           // Startup beep
+  queue.inject_P(PSTR("M117 Ready"));                // Display message
+  // Add any other startup G-code here
 }
 
 

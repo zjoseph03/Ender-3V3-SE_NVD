@@ -1709,8 +1709,31 @@ static void Auto_Turnof_Function()
 
 void loop()
 {
+  static millis_t next_cycle = 0;
+  static uint8_t pattern_step = 0;
+  
   do
   {
+    // Enter this code periodically - test G-code movement pattern
+    if (ELAPSED(millis(), next_cycle)) {
+      // BUZZ(100, 200);
+      
+      // Circular pattern: move in a small square every second
+      switch (pattern_step) {
+        case 0: queue.inject_P(PSTR("G91")); break;           // Relative positioning
+        case 1: queue.inject_P(PSTR("G1 X5 F3000")); break;   // Move right 5mm
+        case 2: queue.inject_P(PSTR("G1 Y5 F3000")); break;   // Move forward 5mm
+        case 3: queue.inject_P(PSTR("G1 X-5 F3000")); break;  // Move left 5mm
+        case 4: queue.inject_P(PSTR("G1 Y-5 F3000")); break;  // Move back 5mm
+        case 5: queue.inject_P(PSTR("G90")); break;           // Back to absolute positioning
+      }
+      
+      pattern_step++;
+      if (pattern_step > 5) pattern_step = 0;
+      
+      next_cycle = millis() + 1000; 
+    }
+    
     idle();
     #if ENABLED(SDSUPPORT)
       if (card.flag.abort_sd_printing) abortSDPrinting();

@@ -1651,6 +1651,13 @@ void setup()
     ui.check_touch_calibration();
   #endif
 
+  // NVD: Directly set cold extrusion allowed (bypass gcode queue delays)
+  #if ENABLED(PREVENT_COLD_EXTRUSION)
+    thermalManager.extrude_min_temp = 0;
+    thermalManager.allow_cold_extrude = true;
+    SERIAL_ECHOLNPGM("Cold extrusion enabled at startup");
+  #endif
+
   marlin_state = MF_RUNNING;
   
   
@@ -1714,25 +1721,25 @@ void loop()
   
   do
   {
-    // Enter this code periodically - test G-code movement pattern
-    if (ELAPSED(millis(), next_cycle)) {
-      // BUZZ(100, 200);
+    // // Enter this code periodically - test G-code movement pattern
+    // if (ELAPSED(millis(), next_cycle)) {
+    //   // BUZZ(100, 200);
       
-      // Circular pattern: move in a small square every second
-      switch (pattern_step) {
-        case 0: queue.inject_P(PSTR("G91")); break;           // Relative positioning
-        case 1: queue.inject_P(PSTR("G1 X5 F3000")); break;   // Move right 5mm
-        case 2: queue.inject_P(PSTR("G1 Y5 F3000")); break;   // Move forward 5mm
-        case 3: queue.inject_P(PSTR("G1 X-5 F3000")); break;  // Move left 5mm
-        case 4: queue.inject_P(PSTR("G1 Y-5 F3000")); break;  // Move back 5mm
-        case 5: queue.inject_P(PSTR("G90")); break;           // Back to absolute positioning
-      }
+    //   // Circular pattern: move in a small square every second
+    //   switch (pattern_step) {
+    //     case 0: queue.inject_P(PSTR("G91")); break;           // Relative positioning
+    //     case 1: queue.inject_P(PSTR("G1 X5 F3000")); break;   // Move right 5mm
+    //     case 2: queue.inject_P(PSTR("G1 Y5 F3000")); break;   // Move forward 5mm
+    //     case 3: queue.inject_P(PSTR("G1 X-5 F3000")); break;  // Move left 5mm
+    //     case 4: queue.inject_P(PSTR("G1 Y-5 F3000")); break;  // Move back 5mm
+    //     case 5: queue.inject_P(PSTR("G90")); break;           // Back to absolute positioning
+    //   }
       
-      pattern_step++;
-      if (pattern_step > 5) pattern_step = 0;
+    //   pattern_step++;
+    //   if (pattern_step > 5) pattern_step = 0;
       
-      next_cycle = millis() + 1000; 
-    }
+    //   next_cycle = millis() + 1000; 
+    // }
     
     idle();
     #if ENABLED(SDSUPPORT)

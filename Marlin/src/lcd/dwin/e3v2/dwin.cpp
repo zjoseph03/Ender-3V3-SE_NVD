@@ -3274,7 +3274,7 @@ void Goto_MainMenu()
   (select_page.now == 3);
   
   // TEST: Display message on screen when main menu loads
-  DWIN_Draw_String(false, false, font8x16, Color_Yellow, Color_Bg_Black, 30, 180, "MAIN MENU LOADED!");
+  DWIN_Draw_String(false, false, font8x16, Color_Yellow, Color_Bg_Black, 30, 180, "TEST TEXT HERE!");
   DWIN_UpdateLCD();
 }
 

@@ -40,9 +40,9 @@ def copy_to_sd(source, target, env):
     if deleted_count > 0:
         print(f"✅ Cleaned {deleted_count} item(s) from SD card")
     
-    # Generate unique filename with timestamp
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    new_name = f"firmware_{timestamp}.bin"
+    # Generate unique filename with timestamp at the beginning (time first, then date)
+    timestamp = datetime.now().strftime("%H%M%S_%Y%m%d")
+    new_name = f"{timestamp}_firmware.bin"
     destination = os.path.join(sd_drive, new_name)
     
     # Copy the file

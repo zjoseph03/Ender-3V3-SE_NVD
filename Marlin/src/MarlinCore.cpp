@@ -1718,28 +1718,57 @@ void loop()
 {
   static millis_t next_cycle = 0;
   static uint8_t pattern_step = 0;
+  static uint8_t line_count = 0;  // Track number of lines drawn
+  static bool homed = false;  // Track if printer is homed
   
   do
   {
-    // // Enter this code periodically - test G-code movement pattern
-    // if (ELAPSED(millis(), next_cycle)) {
-    //   // BUZZ(100, 200);
+    // Extrusion line pattern - 15cm lines with 5cm spacing
+    if (ELAPSED(millis(), next_cycle)) {
+      switch (pattern_step) {
+        case 0:
+          if (!homed) {
+            queue.inject_P(PSTR("G28"));  // Home all axes first
+            homed = true;
+            next_cycle = millis() + 3000;  // Wait 3 seconds for homing
+            return;  // Skip to next loop iteration
+          }
+          queue.inject_P(PSTR("G90"));  // Absolute positioning
+          queue.inject_P(PSTR("G1 X0 Y0 Z10 F3000"));  // Move to front-left corner, Z up
+          break;
+        case 1: 
+          queue.inject_P(PSTR("G91"));  // Switch to relative positioning
+          break;
+        case 2: 
+          queue.inject_P(PSTR("G92 E0"));  // Reset extruder position
+          break;
+        case 3: 
+          // Extrude 15cm (150mm) straight line forward
+          queue.inject_P(PSTR("G1 Y150 E15 F1500"));  // Move 150mm, extrude 15mm
+          break;
+        case 4: 
+          // Move back to top (reverse 150mm in Y)
+          queue.inject_P(PSTR("G1 Y-150 F3000"));
+          break;
+        case 5:
+          line_count++;
+          if (line_count >= 4) {  // After 4 lines (4*50mm = 200mm), reset to start
+            queue.inject_P(PSTR("G90"));  // Absolute mode
+            queue.inject_P(PSTR("G1 X0 Y0 F3000"));  // Go back to front-left corner
+            queue.inject_P(PSTR("G91"));  // Back to relative mode
+            line_count = 0;
+          } else {
+            // Move 5cm (50mm) to the right for next line
+            queue.inject_P(PSTR("G1 X50 F3000"));
+          }
+          break;
+      }
       
-    //   // Circular pattern: move in a small square every second
-    //   switch (pattern_step) {
-    //     case 0: queue.inject_P(PSTR("G91")); break;           // Relative positioning
-    //     case 1: queue.inject_P(PSTR("G1 X5 F3000")); break;   // Move right 5mm
-    //     case 2: queue.inject_P(PSTR("G1 Y5 F3000")); break;   // Move forward 5mm
-    //     case 3: queue.inject_P(PSTR("G1 X-5 F3000")); break;  // Move left 5mm
-    //     case 4: queue.inject_P(PSTR("G1 Y-5 F3000")); break;  // Move back 5mm
-    //     case 5: queue.inject_P(PSTR("G90")); break;           // Back to absolute positioning
-    //   }
+      pattern_step++;
+      if (pattern_step > 5) pattern_step = 2;  // Loop from step 2 (skip homing/setup)
       
-    //   pattern_step++;
-    //   if (pattern_step > 5) pattern_step = 0;
-      
-    //   next_cycle = millis() + 1000; 
-    // }
+      next_cycle = millis() + 500;  // Wait 500ms between steps
+    }
     
     idle();
     #if ENABLED(SDSUPPORT)

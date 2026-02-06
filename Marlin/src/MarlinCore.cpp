@@ -1659,8 +1659,12 @@ void setup()
   #endif
 
   // NVD: Initialize PC0 as output for Arduino signal
-  OUT_WRITE(PC0, LOW);  // Set PC0 as output, start LOW
-  SERIAL_ECHOLNPGM("PC0 initialized for Arduino signal (J10)");
+  // PC0 naturally reads HIGH when in input mode (external pull-up)
+  // To avoid boot current spike, configure as input first, then gently transition to output
+  SET_INPUT(PC0);           // Ensure it's in input mode
+  safe_delay(100);          // Let voltage stabilize
+  pinMode(PC0, OUTPUT);     // Switch to output mode WITHOUT changing state
+  SERIAL_ECHOLNPGM("PC0 configured as output (J10) - use M42 P32 to control");
 
   marlin_state = MF_RUNNING;
   

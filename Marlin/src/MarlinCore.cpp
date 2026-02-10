@@ -1659,10 +1659,6 @@ void setup()
   #endif
 
   // NVD: Initialize PC0 as output for Arduino signal
-  // PC0 naturally reads HIGH when in input mode (external pull-up)
-  // To avoid boot current spike, configure as input first, then gently transition to output
-  SET_INPUT(PC0);           // Ensure it's in input mode
-  safe_delay(100);          // Let voltage stabilize
   pinMode(PC0, OUTPUT);     // Switch to output mode WITHOUT changing state
   SERIAL_ECHOLNPGM("PC0 configured as output (J10) - use M42 P32 to control");
 
@@ -1729,12 +1725,10 @@ void loop()
   static uint8_t line_count = 0;  // Track number of lines drawn
   static bool homed = false;  // Track if printer is homed
   
-
-  // TODO: Add instructions to trigger PC0 to send signal to Arduino for cutting motion.
-
   do
   {
-    // Extrusion line pattern - 15cm lines with 5cm spacing
+    #ifdef DEMO_WIRE
+    // Wire dispensing pattern - X direction with compensation for wire thickness
     if (ELAPSED(millis(), next_cycle)) {
       switch (pattern_step) {
         case 0:
@@ -1745,7 +1739,7 @@ void loop()
             return;  // Skip to next loop iteration
           }
           queue.inject_P(PSTR("G90"));  // Absolute positioning
-          queue.inject_P(PSTR("G1 X0 Y0 Z10 F3000"));  // Move to front-left corner, Z up
+          queue.inject_P(PSTR("G1 X10 Y0 Z5 F3000"));  // Move to start position, Z up
           break;
         case 1: 
           queue.inject_P(PSTR("G91"));  // Switch to relative positioning
@@ -1754,33 +1748,44 @@ void loop()
           queue.inject_P(PSTR("G92 E0"));  // Reset extruder position
           break;
         case 3: 
-          // Extrude 15cm (150mm) straight line forward
-          queue.inject_P(PSTR("G1 Y150 E15 F1500"));  // Move 150mm, extrude 15mm
+          // Move 150mm in X direction while dispensing wire
+          queue.inject_P(PSTR("G1 X150 E150 F1500"));  // Move 150mm in X, extrude 150mm
+          next_cycle = millis() + 500;
           break;
-        case 4: 
-          // Move back to top (reverse 150mm in Y)
-          queue.inject_P(PSTR("G1 Y-150 F3000"));
+        case 4:
+          // Stop for 2 seconds (cutting simulation)
+          queue.inject_P(PSTR("G4 P2000"));  // Wait 2000ms (2 seconds)
+          next_cycle = millis() + 2000;
           break;
-        case 5:
+        case 5: 
+          // Move back in X while retracting to emulate cutting motion
+          // Retract wire while moving back (simulates wire being cut/released)
+          // queue.inject_P(PSTR("G1 X-150 E-150 F3000"));  // Move back 145mm, retract 10mm
+          queue.inject_P(PSTR("G1 X-150 F3000"));  // Move back 145mm, retract 10mm
+          break;
+        case 6:
           line_count++;
-          if (line_count >= 4) {  // After 4 lines (4*50mm = 200mm), reset to start
+          if (line_count >= 4) {  // After 4 lines, reset to start
             queue.inject_P(PSTR("G90"));  // Absolute mode
-            queue.inject_P(PSTR("G1 X0 Y0 F3000"));  // Go back to front-left corner
+            queue.inject_P(PSTR("G1 X10 Y0 F3000"));  // Go back to origin
             queue.inject_P(PSTR("G91"));  // Back to relative mode
             line_count = 0;
           } else {
-            // Move 5cm (50mm) to the right for next line
-            queue.inject_P(PSTR("G1 X50 F3000"));
+            // Move across Y direction for next line, then ready to dispense again
+            queue.inject_P(PSTR("G1 Y50 F3000"));
           }
           break;
       }
       
       pattern_step++;
-      if (pattern_step > 5) pattern_step = 2;  // Loop from step 2 (skip homing/setup)
+      if (pattern_step > 6) pattern_step = 2;  // Loop from step 2 (skip homing/setup)
       
-      next_cycle = millis() + 500;  // Wait 500ms between steps
+      if (pattern_step != 3 && pattern_step != 4) {
+        next_cycle = millis() + 500;  // Wait 500ms between steps (except during extrusion/dwell)
+      }
     }
-
+    #endif
+    
     idle();
     #if ENABLED(SDSUPPORT)
       if (card.flag.abort_sd_printing) abortSDPrinting();
@@ -1799,5 +1804,3 @@ void loop()
     
   } while (ENABLED(__AVR__)); // Loop forever on slower (AVR) boards
 }
-
-
